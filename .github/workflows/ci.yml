@@ -23,7 +23,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore DevSecOpsLab.slnx
+        run: dotnet restore DevSecOpsLab.slnx --locked-mode
 
       - name: Build
         run: dotnet build DevSecOpsLab.slnx --no-restore --configuration Release
@@ -33,3 +33,16 @@ jobs:
 
       - name: Security - Vulnerable dependencies
         run: dotnet list DevSecOpsLab.slnx package --vulnerable --include-transitive
+  osv-scan:
+    name: SCA - OSV Scanner
+    needs: build-test-security
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.1
+    with:
+      scan-args: |-
+        --lockfile=./DevSecOps.Api/packages.lock.json
+        --lockfile=./DevSecOps.Api.Tests/packages.lock.json
+      fail-on-vuln: true 

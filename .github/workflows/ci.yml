@@ -182,3 +182,54 @@ jobs:
           severity: "HIGH,CRITICAL"
           exit-code: "1"
           ignore-unfixed: true
+  zap-scan:
+    name: DAST - OWASP ZAP
+    needs: build-test-security
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore DevSecOpsLab.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build DevSecOps.Api/DevSecOps.Api.csproj --configuration Release
+
+      - name: Start API
+        run: |
+          dotnet run --project DevSecOps.Api/DevSecOps.Api.csproj \
+            --configuration Release \
+            --no-build \
+            --urls http://0.0.0.0:8080 &
+          echo $! > api.pid
+
+      - name: Wait for API
+        run: |
+          for i in {1..30}; do
+            if curl --fail http://localhost:8080/swagger/index.html; then
+              echo "API is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not start"
+          exit 1
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: "http://localhost:8080"
+          artifact_name: "zap-scan-report"
+          fail_action: false
+          allow_issue_writing: false
+          cmd_options: "-a"

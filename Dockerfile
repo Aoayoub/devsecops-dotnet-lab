@@ -1,4 +1,3 @@
-
 # Étape 1 : construire l'application
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
@@ -17,5 +16,8 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 EXPOSE 8080
+
+# Exécuter le conteneur avec l'utilisateur non-root de l'image .NET
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "DevSecOps.Api.dll"]

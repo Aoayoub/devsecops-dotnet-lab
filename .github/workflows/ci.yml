@@ -42,14 +42,16 @@ jobs:
         run: dotnet list DevSecOpsLab.slnx package --vulnerable --include-transitive
       
       - name: Trivy - Image Vulnerability Scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: devsecops-api:${{ github.sha }}
-          scan-type: image
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.70.0 image \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            devsecops-api:${{ github.sha }}
+
  
   osv-scan:
     name: SCA - OSV Scanner

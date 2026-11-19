@@ -1,3 +1,4 @@
+
 name: DevSecOps CI
 
 on:
@@ -12,6 +13,7 @@ permissions:
   contents: read
 
 jobs:
+
   # 1. Build, tests and initial security checks
   build-test-security:
     name: Build, Test & Security
@@ -45,6 +47,7 @@ jobs:
       - name: Security - Vulnerable dependencies
         run: dotnet list DevSecOpsLab.slnx package --vulnerable --include-transitive
 
+
   # 2. SonarQube Code Quality and Security Analysis
   sonarqube-analysis:
     name: Code Quality - SonarQube
@@ -69,6 +72,7 @@ jobs:
         shell: powershell
         run: |
           dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP\sonar-scanner"
+
       - name: SonarQube Begin
         shell: powershell
         env:
@@ -76,11 +80,12 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           $scanner = "$env:RUNNER_TEMP\sonar-scanner\dotnet-sonarscanner.exe"
+
           & $scanner begin /k:"devsecops-dotnet-lab" `
-          /d:sonar.host.url="$env:SONAR_HOST_URL" `
-          /d:sonar.token="$env:SONAR_TOKEN" `
-          /d:sonar.qualitygate.wait=true `
-          /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
+            /d:sonar.host.url="$env:SONAR_HOST_URL" `
+            /d:sonar.token="$env:SONAR_TOKEN" `
+            /d:sonar.qualitygate.wait=true `
+            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
 
       - name: Restore
         run: dotnet restore DevSecOpsLab.slnx --locked-mode
@@ -90,25 +95,26 @@ jobs:
 
       - name: Test with coverage
         run: |
-            dotnet test DevSecOps.Api.Tests/DevSecOps.Api.Tests.csproj `
+          dotnet test DevSecOps.Api.Tests/DevSecOps.Api.Tests.csproj `
             --configuration Release `
             --no-build `
             --collect:"XPlat Code Coverage" `
             --results-directory ./TestResults `
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
       - name: Verify OpenCover report
         shell: powershell
         run: |
-          $report = Get-ChildItem -Path "./TestResults" -Filter "coverage.opencover.xml" -Recurse
+          $report = Get-ChildItem -Path "./TestResults" -Filter "coverage.opencover.xml" -Recurse -ErrorAction SilentlyContinue
 
           if (-not $report) {
-          Write-Error "OpenCover report not found!"
-          exit 1
+            Write-Error "OpenCover report not found!"
+            exit 1
           }
 
           Write-Host "OpenCover report found:"
           $report | ForEach-Object { Write-Host $_.FullName }
-    
+
       - name: SonarQube End
         shell: powershell
         env:
@@ -116,6 +122,7 @@ jobs:
         run: |
           $scanner = "$env:RUNNER_TEMP\sonar-scanner\dotnet-sonarscanner.exe"
           & $scanner end /d:sonar.token="$env:SONAR_TOKEN"
+
 
   # 3. Software Composition Analysis - OSV Scanner
   osv-scan:
@@ -135,6 +142,7 @@ jobs:
         --lockfile=./DevSecOps.Api.Tests/packages.lock.json
       fail-on-vuln: true
 
+
   # 4. Vulnerability and Misconfiguration Scan - Trivy
   trivy-scan:
     name: Vulnerability & Misconfiguration - Trivy
@@ -149,12 +157,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability and misconfiguration scanner
+      # Scan the repository filesystem
+      - name: Trivy - Filesystem Scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: "fs"
           scan-ref: "."
           scanners: "vuln,misconfig"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+          ignore-unfixed: true
+
+      # Build the Docker image
+      - name: Build Docker Image
+        run: docker build -t devsecops-api:latest -f DevSecOps.Api/Dockerfile .
+
+      # Scan the Docker image
+      - name: Trivy - Docker Image Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "image"
+          image-ref: "devsecops-api:latest"
+          scanners: "vuln"
           severity: "HIGH,CRITICAL"
           exit-code: "1"
           ignore-unfixed: true

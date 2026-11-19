@@ -1,7 +1,7 @@
 
 name: DevSecOps CI
 
-'on':
+on:
   push:
     branches:
       - main
@@ -9,8 +9,14 @@ name: DevSecOps CI
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
+
+  # 1. Build, tests and initial security checks
   build-test-security:
+    name: Build, Test & Security
     runs-on: ubuntu-latest
 
     steps:
@@ -18,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-        
+
       - name: Secret Detection - Gitleaks
         uses: gitleaks/gitleaks-action@v3
         env:
@@ -40,31 +46,94 @@ jobs:
 
       - name: Security - Vulnerable dependencies
         run: dotnet list DevSecOpsLab.slnx package --vulnerable --include-transitive
-      
-    
 
- 
+
+  # 2. SonarQube Code Quality and Security Analysis
+  sonarqube-analysis:
+    name: Code Quality - SonarQube
+    needs: build-test-security
+
+    # Requires a self-hosted Windows runner on your PC
+    runs-on: [self-hosted, Windows, X64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Install SonarScanner
+        shell: powershell
+        run: |
+          dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP\sonar-scanner"
+
+      - name: SonarQube Begin
+        shell: powershell
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          $scanner = "$env:RUNNER_TEMP\sonar-scanner\dotnet-sonarscanner.exe"
+          & $scanner begin /k:"devsecops-dotnet-lab" /d:sonar.host.url="$env:SONAR_HOST_URL" /d:sonar.token="$env:SONAR_TOKEN"
+
+      - name: Restore
+        run: dotnet restore DevSecOpsLab.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build DevSecOpsLab.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test DevSecOpsLab.slnx --configuration Release --no-build
+
+      - name: SonarQube End
+        shell: powershell
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          $scanner = "$env:RUNNER_TEMP\sonar-scanner\dotnet-sonarscanner.exe"
+          & $scanner end /d:sonar.token="$env:SONAR_TOKEN"
+
+
+  # 3. Software Composition Analysis - OSV Scanner
   osv-scan:
     name: SCA - OSV Scanner
     needs: build-test-security
+
     permissions:
       actions: read
       contents: read
       security-events: write
+
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.1
+
     with:
       scan-args: |-
         --lockfile=./DevSecOps.Api/packages.lock.json
         --lockfile=./DevSecOps.Api.Tests/packages.lock.json
       fail-on-vuln: true
 
+
+  # 4. Vulnerability and Misconfiguration Scan - Trivy
   trivy-scan:
-    name: Vulnerability & Misconfig - Trivy
+    name: Vulnerability & Misconfiguration - Trivy
     needs: build-test-security
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       security-events: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -77,4 +146,4 @@ jobs:
           scanners: 'vuln,misconfig'
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
-          ignore-unfixed: true 
+          ignore-unfixed: true

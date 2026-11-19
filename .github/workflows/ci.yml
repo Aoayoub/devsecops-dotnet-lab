@@ -170,7 +170,7 @@ jobs:
 
       # Build the Docker image
       - name: Build Docker Image
-        run: docker build -t devsecops-api:latest -f devsecops-dotnet-lab/Dockerfile .
+        run: docker build -t devsecops-api:latest -f Dockerfile .
 
       # Scan the Docker image
       - name: Trivy - Docker Image Scan

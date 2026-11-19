@@ -88,9 +88,27 @@ jobs:
       - name: Build
         run: dotnet build DevSecOpsLab.slnx --no-restore --configuration Release
 
-      - name: Test
-        run: dotnet test DevSecOpsLab.slnx --configuration Release --no-build
+      - name: Test with coverage
+        run: |
+            dotnet test DevSecOps.Api.Tests/DevSecOps.Api.Tests.csproj `
+            --configuration Release `
+            --no-build `
+            --collect:"XPlat Code Coverage" `
+            --results-directory ./TestResults `
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+      - name: Verify OpenCover report
+        shell: powershell
+        run: |
+          $report = Get-ChildItem -Path "./TestResults" -Filter "coverage.opencover.xml" -Recurse
 
+          if (-not $report) {
+          Write-Error "OpenCover report not found!"
+          exit 1
+          }
+
+          Write-Host "OpenCover report found:"
+          $report | ForEach-Object { Write-Host $_.FullName }
+    
       - name: SonarQube End
         shell: powershell
         env:

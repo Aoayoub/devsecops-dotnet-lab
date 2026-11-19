@@ -40,17 +40,32 @@ jobs:
 
       - name: Security - Vulnerable dependencies
         run: dotnet list DevSecOpsLab.slnx package --vulnerable --include-transitive
-      
+      - name: Docker Build
+        run: |
+          docker build \
+            -t devsecops-api:${{ github.sha }} \
+            -f DevSecOps.Api/Dockerfile \
+            DevSecOps.Api
+
+      # 9. Export de l'image Docker
+      - name: Export Docker Image
+        run: |
+          docker save \
+            devsecops-api:${{ github.sha }} \
+            -o devsecops-api.tar
+
+      # 10. Analyse de l'image avec Trivy
       - name: Trivy - Image Vulnerability Scan
         run: |
           docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/work" \
             aquasec/trivy:0.70.0 image \
+            --input /work/devsecops-api.tar \
             --scanners vuln \
             --severity HIGH,CRITICAL \
             --ignore-unfixed \
-            --exit-code 1 \
-            devsecops-api:${{ github.sha }}
+            --exit-code 1 
+    
 
  
   osv-scan:

@@ -40,31 +40,7 @@ jobs:
 
       - name: Security - Vulnerable dependencies
         run: dotnet list DevSecOpsLab.slnx package --vulnerable --include-transitive
-      - name: Docker Build
-        run: |
-          docker build \
-            -t devsecops-api:${{ github.sha }} \
-            -f DevSecOps.Api/Dockerfile \
-            DevSecOps.Api
-
-      # 9. Export de l'image Docker
-      - name: Export Docker Image
-        run: |
-          docker save \
-            devsecops-api:${{ github.sha }} \
-            -o devsecops-api.tar
-
-      # 10. Analyse de l'image avec Trivy
-      - name: Trivy - Image Vulnerability Scan
-        run: |
-          docker run --rm \
-            -v "$PWD:/work" \
-            aquasec/trivy:0.70.0 image \
-            --input /work/devsecops-api.tar \
-            --scanners vuln \
-            --severity HIGH,CRITICAL \
-            --ignore-unfixed \
-            --exit-code 1 
+      
     
 
  
@@ -80,4 +56,25 @@ jobs:
       scan-args: |-
         --lockfile=./DevSecOps.Api/packages.lock.json
         --lockfile=./DevSecOps.Api.Tests/packages.lock.json
-      fail-on-vuln: true 
+      fail-on-vuln: true
+
+  trivy-scan:
+    name: Vulnerability & Misconfig - Trivy
+    needs: build-test-security
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability and misconfiguration scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'vuln,misconfig'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+          ignore-unfixed: true 

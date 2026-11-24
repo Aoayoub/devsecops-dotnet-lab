@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
 
@@ -182,6 +183,9 @@ jobs:
           severity: "HIGH,CRITICAL"
           exit-code: "1"
           ignore-unfixed: true
+
+
+  # 5. Dynamic Application Security Testing - OWASP ZAP
   zap-scan:
     name: DAST - OWASP ZAP
     needs: build-test-security
@@ -233,3 +237,40 @@ jobs:
           fail_action: false
           allow_issue_writing: false
           cmd_options: "-a"
+
+
+  # 6. Publish Docker image to GitHub Container Registry
+  publish-image:
+    name: Publish Docker Image
+    needs:
+      - build-test-security
+      - sonarqube-analysis
+      - osv-scan
+      - trivy-scan
+      - zap-scan
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/aoayoub/devsecops-api:latest

@@ -220,7 +220,7 @@ jobs:
       - name: Wait for API
         run: |
           for i in {1..30}; do
-            if curl --fail http://localhost:8080/weatherforecast; then
+            if curl --fail http://localhost:8080/health; then
               echo "API is ready"
               exit 0
             fi

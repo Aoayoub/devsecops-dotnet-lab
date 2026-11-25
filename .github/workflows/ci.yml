@@ -74,7 +74,6 @@ jobs:
         run: |
           
           dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP\sonar-scanner"
-          
 
       - name: SonarQube Begin
         shell: powershell

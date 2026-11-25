@@ -15,6 +15,7 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
+
 EXPOSE 8080
 
 # Exécuter le conteneur avec l'utilisateur non-root de l'image .NET

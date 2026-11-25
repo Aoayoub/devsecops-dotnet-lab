@@ -1,4 +1,3 @@
-
 services:
   sonarqube:
     image: sonarqube:community
@@ -33,6 +32,32 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+
+  api:
+    image: ghcr.io/aoayoub/devsecops-api:latest
+    container_name: devsecops-api
+    ports:
+      - "8080:8080"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - monitoring
+    depends_on:
+      - api
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    driver: bridge
 
 volumes:
   sonarqube_data:

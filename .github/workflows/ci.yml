@@ -72,16 +72,8 @@ jobs:
       - name: Install SonarScanner
         shell: powershell
         run: |
-         $scannerPath = "$env:RUNNER_TEMP\sonar-scanner-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-
-          dotnet tool install dotnet-sonarscanner
-          --tool-path $scannerPath
-
-          if ($LASTEXITCODE -ne 0) {
-          throw "SonarScanner installation failed"
-          }
-
-          echo "SONAR_SCANNER_PATH=$scannerPath" >> $env:GITHUB_ENV
+          
+          dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP\sonar-scanner"
 
       - name: SonarQube Begin
         shell: powershell

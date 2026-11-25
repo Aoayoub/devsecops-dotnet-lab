@@ -79,7 +79,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          dotnet sonarscanner begin /k:"devsecops-dotnet-lab" `
+          dotnet sonarscanner begin /k:"devsecops" `
             /d:sonar.host.url="$env:SONAR_HOST_URL" `
             /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.qualitygate.wait=true `

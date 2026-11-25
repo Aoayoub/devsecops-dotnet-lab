@@ -72,7 +72,9 @@ jobs:
       - name: Install SonarScanner
         shell: powershell
         run: |
-          dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP\sonar-scanner"
+           $scannerPath = "$env:RUNNER_TEMP\sonar-scanner"
+           Remove-Item $scannerPath -Recurse -Force -ErrorAction SilentlyContinue
+           dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP\sonar-scanner"
 
       - name: SonarQube Begin
         shell: powershell

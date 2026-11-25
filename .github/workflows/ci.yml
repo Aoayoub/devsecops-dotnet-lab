@@ -75,10 +75,8 @@ jobs:
           if (Test-Path "$env:RUNNER_TEMP\sonar-scanner") {
             Remove-Item -Recurse -Force "$env:RUNNER_TEMP\sonar-scanner"
           }
-          dotnet tool install dotnet-sonarscanner `
-            --tool-path "$env:RUNNER_TEMP\sonar-scanner" `
-            --add-source https://nuget.org `
-            --ignore-failed-sources"
+          dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP\sonar-scanner" --add-source https://nuget.org --ignore-failed-sources
+
 
       - name: SonarQube Begin
         shell: powershell

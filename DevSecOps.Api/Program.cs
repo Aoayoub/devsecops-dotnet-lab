@@ -1,3 +1,4 @@
+using Prometheus;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
@@ -12,7 +13,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
+app.UseHttpMetrics();
 app.UseHttpsRedirection();
 
 var summaries = new[]
@@ -37,6 +38,7 @@ app.MapGet("/weatherforecast", () =>
 
 // Endpoint Health Check : APRÈS Build()
 app.MapHealthChecks("/health");
+app.MapMetrics();
 
 app.Run();
 

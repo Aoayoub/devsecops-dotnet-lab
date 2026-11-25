@@ -118,8 +118,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          $scanner = "$env:RUNNER_TEMP\sonar-scanner\dotnet-sonarscanner.exe"
-          & $scanner end /d:sonar.token="$env:SONAR_TOKEN"
+          dotnet sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
 
 
   # 3. Software Composition Analysis - OSV Scanner

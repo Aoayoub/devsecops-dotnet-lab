@@ -69,21 +69,17 @@ jobs:
           distribution: "zulu"
           java-version: "21"
 
-      - name: Install SonarScanner
+      - name: Restore .NET Tools
         shell: powershell
-        run: |
-          
-          dotnet tool install dotnet-sonarscanner --tool-path "$env:RUNNER_TEMP\sonar-scanner"
-
+        run: dotnet tool restore
+        
       - name: SonarQube Begin
         shell: powershell
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          $scanner = "$env:RUNNER_TEMP\sonar-scanner\dotnet-sonarscanner.exe"
-
-          & $scanner begin /k:"devsecops-dotnet-lab" `
+          dotnet sonarscanner begin /k:"devsecops-dotnet-lab" `
             /d:sonar.host.url="$env:SONAR_HOST_URL" `
             /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.qualitygate.wait=true `

@@ -1,3 +1,4 @@
+
 services:
   api:
     image: ghcr.io/aoayoub/devsecops-api:latest
@@ -21,6 +22,22 @@ services:
       - api
     restart: unless-stopped
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 networks:
   monitoring:
     driver: bridge
+
+volumes:
+  grafana_data:
